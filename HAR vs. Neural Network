@@ -1,0 +1,152 @@
+#library(neuralnet)
+#library(HARModel)
+#library(Hmisc)
+#Data[, 4:6] <- NULL
+#Data[, 3] <- as.Date(Data$Date)
+
+MyData = Data$Rvol
+NN1 = (MyData-Lag(MyData, -1))/1
+NN5 = (MyData-Lag(MyData, -5))/5
+NN22 = (MyData-Lag(MyData, -22))/22
+NNData <- cbind(Data$Rvol, NN1, NN5, NN22)
+#NNData[, 5] <- NULL
+
+NNData = data.frame(NNData)
+NNData = na.exclude(NNData)
+#Checking for lag. See if it looks specified correctly.
+ggplot(NNData,aes(Data$Date[1:463], y=value,color=variable)) + geom_point(aes(y=NNData$NN1,col="L1")) 
+                                                             + geom_point(aes(y=NNData$NN5,col="L5")) 
+                                                             + geom_point(aes(y=NNData$NN22,col="L22"))
+
+# Issues with missingness?
+apply(NNData,2,function(x) sum(is.nan(x)))
+apply(NNData,2,function(x) sum(is.na(x)))
+
+# Split data and do plain vanilla linear modeling
+index <- sample(1:nrow(NNData),round(0.75*nrow(NNData)))
+
+train <- NNData[index,]
+test <- NNData[-index,]
+lm.fit <- glm(V1~ NN1 + NN5 + NN22, data=train) #Kan vi ændre det til HAR?
+summary(lm.fit)
+pr.lm <- predict(lm.fit,test)
+MSE.lm <- sum((pr.lm - test$V1)^2)/nrow(test)
+
+# Prepare for NN
+maxs <- apply(NNData, 2, max)
+mins <- apply(NNData, 2, min)
+scaled <- as.data.frame(scale(NNData, center = mins, scale = maxs - mins))
+train_ <- scaled[index,]
+test_ <- scaled[-index,]
+
+# Setup the model
+n <- names(train_)
+f <- as.formula(paste("V1 ~", paste(n[!n %in% "V1"], collapse = " + ")))
+nn <- neuralnet(f,data=train_,hidden=c(4,2),linear.output=T)
+plot(nn)
+
+# Predict median value
+pr.nn <- compute(nn,test_[,1:4])
+pr.nn_ <- pr.nn$net.result*(max(NNData$V1)-min(NNData$V1))+min(NNData$V1)
+test.r <- (test_$V1)*(max(NNData$V1)-min(NNData$V1))+min(NNData$V1)
+MSE.nn <- sum((test.r - pr.nn_)^2)/nrow(test_)
+
+# Compare MSE's
+print(paste(MSE.lm,MSE.nn))
+
+# Single plot
+par(mfrow=c(1,1))
+plot(test$V1,pr.nn_,col='red',main='Real vs predicted NN',pch=18,cex=0.7)
+points(test$V1,pr.lm,col='blue',pch=18,cex=0.7)
+abline(0,1,lwd=2)
+legend('bottomright',legend=c('NN','HAR'),pch=18,col=c('red','blue'))
+
+# Cross-validation 
+#Har
+par(mfrow=c(2, 1))
+library(boot)
+library(plyr)
+set.seed(500)
+pbar <- create_progress_bar('text')
+k <- 10
+cv.errorHAR <- NULL
+for(i in 1:k){
+  cv.index <- sample(1:nrow(NNData),round(0.9*nrow(NNData)))
+  train.cv <- scaled[index,]
+  test.cv <- scaled[-index,]
+  lm.fit <-  glm(V1~ NN1 + NN5 + NN22,data=train.cv)
+  cv.errorHAR[i] <-  cv.glm(train.cv,lm.fit,K=10)$delta[1]
+}
+mean(cv.errorHAR)
+cv.errorHAR
+boxplot(cv.errorHAR,xlab='MSE CV',col='cyan',
+        border='blue',names='CV error (MSE)',
+        main='CV error (MSE) for HAR',horizontal=TRUE)
+#NN
+set.seed(500)
+cv.errorNN <- NULL
+pbar <- create_progress_bar('text')
+pbar$init(k)
+for(i in 1:k){
+  index <- sample(1:nrow(NNData),round(0.9*nrow(NNData)))
+  train.cv <- scaled[index,]
+  test.cv <- scaled[-index,]
+  nn <- neuralnet(f,data=train.cv,hidden=c(4,2),linear.output=T)
+  pr.nn <- compute(nn,test.cv[,1:4])
+  pr.nn <- pr.nn$net.result*(max(NNData$V1)-min(NNData$V1))+min(NNData$V1)
+  test.cv.r <- (test.cv$V1)*(max(NNData$V1)-min(NNData$V1))+min(NNData$V1)
+  cv.errorNN[i] <- sum((test.cv.r - pr.nn)^2)/nrow(test.cv)
+  pbar$step()
+}
+mean(cv.errorNN)
+cv.errorNN
+boxplot(cv.errorNN,xlab='MSE CV',col='cyan',
+        border='blue',names='CV error (MSE)',
+        main='CV error (MSE) for NN',horizontal=TRUE)
+
+########################
+#Forecasting
+########################
+library(forecast)
+par(mfrow=c(2, 1))
+#Neural Network
+pr.nn_ <- predict(nn, test)
+pr.nn_ <- as.numeric(pr.nn_)
+NNFor <- forecast(pr.nn_,  h=5)
+plot(NNFor, col="blue")
+accuracy(NNFor)
+sumNN <- summary(NNFor)
+#HAR
+pr.lm_ <-  predict(lm.fit, test)
+pr.lm_ <- as.numeric(pr.lm_)
+HARFor <- forecast(pr.lm_, h=5)
+plot(HARFor, col="red")
+sumHAR <- summary(HARFor)
+accuracy(HARFor)
+########################
+#Bagging
+########################
+#Neural Networks
+par(mfrow=c(1, 2))
+y = as.numeric(pr.nn_)
+pr.NNBag = baggedModel(y, bld.mbb.bootstrap(y, 100), fn=ets)
+NNBag = forecast(pr.NNBag, h = 5)
+autoplot(NNBag)
+#HAR
+x = as.numeric(pr.lm_)
+pr.HARBag = baggedModel(x, bld.mbb.bootstrap(x, 100), fn=ets)
+HARBag = forecast(pr.HARBag, h = 5)
+autoplot(HARBag)
+accuracy(NNBag)
+accuracy((HARBag))
+######################
+#Bayesian Ensemble
+#####################
+library(SuperLearner)
+library(arm)
+cv.modelNN <- CV.SuperLearner(y, test, V=5, SL.library=list("SL.bayesglm"))
+cv.modelHAR <- CV.SuperLearner(x, test, V=5, SL.library=list("SL.bayesglm"))
+summary(cv.modelNN)
+summary(cv.modelHAR)
+plot(cv.modelHAR)
+plot(cv.modelNN)
