@@ -6,22 +6,22 @@ Inspired by Hillebrand &amp; Medeiros (2009) and Corsi (2009), I put neural netw
 
 ### Introduction to the models:
 ##### HAR (Heterogenous Autoregressive model):
-Developed by Corsi in 2009, this model is based on a simple regression framework. The independent variables is simply the daily volatility lagged 1, 5 and 22 days respectively. This is to simulate the volatility of yesterday, a week ago, and approximately one month ago (Only taking open market days into account). This type of model is also called a 'Long memory'-model, at it "remembers" what happened 22 market days ago.
+Developed by Corsi in 2009, this model is based on a simple regression framework. The independent variables are simply the daily volatility lagged 1, 5 and 22 days respectively. This is to simulate the volatility of yesterday, a week ago, and approximately one month ago (Only taking open market days into account). This type of model is also called a 'Long memory'-model, as it "remembers" what happened 22 market days ago.
 
 How does it work intuitively?: Because traders with a higher trading frequency base their strategy on the past long-term volatility to predict the future, and change their strategies accordingly, they create short-term volatility. This behavior has no effect on traders with lower trading frequencies, but it pours volatility into the short-term
-environment, which support the argument of using different time horizons in volatility models. (Further reading: See "Rossi & Gallo (2006)" for intuition behind hidden markov models & latent partial volatility) 
+environment, which supports the argument of using different time horizons in volatility models. (Further reading: See "Rossi & Gallo (2006)" for intuition behind hidden markov models & latent partial volatility) 
 
-The model is one of the commonly used in high frequency econometrics, and there exist tons of variations (SHAR, HAR-J, CHAR, just to name a few). They all have certain strengths, but given the simple regression framework, there are hardly any limits to modefications available. 
+The model is one of the most commonly used in high frequency econometrics, and there exists tons of variations (SHAR, HAR-J, CHAR, just to name a few). They all have certain strengths, but given the simple regression framework, there are hardly any limits to modifications available. 
 
 ##### Neural Network:
-I enjoy working with neural networks. They are easy to implements, and to understand mathematically. It is simply a weighted regression with backpropagation, caleld 'gradient descent', which optimizes for the best solution by minimizing the cost of the errors. Furthermore, we have an activation function which squeezes the data into more manageable thresholds than raw data. I will be using the simple sigmoid function as my activation function. However, ReLu would have been the prefered for this project.
+I enjoy working with neural networks. They are easy to implements and to understand mathematically. They are simply weighted regressions with backpropagation, called 'gradient descent', which optimizes for the best solution by minimizing the cost of the errors. Furthermore, an activation function squeezes the data into more manageable thresholds than raw data. I will be using the simple Sigmoid-function as my activation function. However, ReLu would have been the optimal choice for this project.
 
-Note that It is common for neural networks to show overfitting due to too many weights, on top of that, they also perform better when scaled. This makes it valuable to preprocess the data, which we can do by standardizing the mean and standard deviation into [0, 1]. This process ensures equal computations for all inputs in the regularization process.
+Note that it is common for neural networks to show overfitting due to too many weights, on top of that, they also perform better when scaled. This makes it valuable to preprocess the data, which is done by standardizing the mean and standard deviation into [0, 1]. This process ensures equal computations for all inputs in the regularization step.
 
 ### Data:
-This project took a lot of computational power in the data manipulative steps. However, the models themselves can easily be implemented, as long the daily data is cleaned thoroughly.
+This project took a lot of computational power in the data manipulative steps. However, the models themselves can easily be implemented, as long as the daily data is cleaned thoroughly.
 
-I started out with downloading the tick-data (Trade&Quote) from the unversity database. This is raw trading data collected at the millisecond interval, and the order books of the same trades. (Note that such data can take weeks to download, depending on the speed of your internet connection. Matlab is often the prefered tool for this process). In high frequency environments, the quotes/orders are placed faster than the trades are executed, as a trade requires a match-up between a buyer and a seller. This relationship can create volatility spikes, which we must be taken into account, using the bivariate method; Basically, all prices that falls outside 1½ of the bid-ask spread are regarded as 'noise', and thereby omitted. 
+I started out with downloading the tick-data (Trade&Quote) from the unversity database. This is raw trading data collected at the millisecond interval, and includes the order books for the same trades. (Note that such data can take weeks to download, depending on the speed of your internet connection. Matlab is often the prefered tool for this process. See codes.). In high frequency environments, the quotes/orders are placed faster than the trades are executed, as a trade requires a match-up between a buyer and a seller. This relationship can create volatility spikes, which must be taken into account using the bivariate method; Basically, all prices that falls outside 1½ of the bid-ask spread are regarded as 'noise', and thereby omitted. 
 
 ##### Cleaning and formatting:
 (This is all done in Matlab and I will therefore not post the code. It is however still downloadeable from the repository.)
@@ -33,12 +33,12 @@ My data specifically ranges from 30-09-2017 to 30-09-2019, and is cleaneded acco
 3. Create a filter to capture the placement of all (few) correlated trades, which can usually be removed manually.
 4. Format the timestamp coordinates into a time variable and compute a bivariate analysis which removes any trades outside the bid-ask spread, where the spread is extended by 1.5 on either side (1.5 is rule of thumb).
 5. The price variable is then formatted into 5-minute intervals, from which returns, realized variance and realized volatility can be computed.
-6. With these variables; create means from lagged variables corresponding to 1 day, 5 days and 22 days. The specifics of these intervals and variables will be explained in a later section
+6. With these variables; create means from lagged variables corresponding to 1 day, 5 days and 22 days.
 
 *(Despite the NYSE and NASDAQ closing at 16:00, I have limited the data to 15:30 due to the ‘liquidity smile’ or ‘liquidity smirk’, which is defined by index-tracking investment vehicles that shift behavior to match their benchmark at the end of the day, creating an asymptotic spike in volatility truncated towards the end of the trading day (Bunda & Desquilbet, 2008).)
 
 ##### Assumptions:
-Because we're working with time series data, we need to make sure it show signs of (weak) stationarity. Because this is a simple walkthrough, I will not be delving deep into the assumptions or derivations, but I'm happy to answer any questions regarding stationarity and autocovariance and similar.
+Because we're working with time series data, we need to make sure it show signs of (weak) stationarity. Because this is a simple walkthrough, I will not be delving deep into the assumptions or derivations, but I'm happy to answer any questions regarding stationarity and autocovariance or similar.
 
 The returns gets lagged according to Corsi (2009) in 1, 5 and 22 days respectively. And is then shown in a plot to determine whether the mean is ~0.
 ```
@@ -55,7 +55,7 @@ print(lapply(LagData, mean)) #Check for stationarity: Is approx. 0?
 ![HFE1](https://user-images.githubusercontent.com/69420936/92719313-40a3a600-f363-11ea-88d0-ea65bf462c64.jpeg)
 
 ### Estimation:
-Now when have looked at the data, it's time for estimating the models. This is done by first splitting the data into test and training sets. I use 75% data in my training set and 25% in the test set. This sepration of data ensure we do not test on data we have already trained our model on, but instead test the models on entirely new data it hasn't seen before.
+Now when have looked at the data and established signs of stationarity, it is time for estimating the models. This is done by first splitting the data into test and training sets. I use 75% data in my training set and 25% in the test set, but you can split however you prefer. This separation of data ensures we do not test on data we have already used for training our model, but instead test the models on entirely new data it hasn't seen before.
 ```
 index <- sample(1:nrow(LagData),round(0.75*nrow(LagData)))
 train <- LagData[index,]
@@ -70,7 +70,7 @@ MSE.lm <- sum((pr.lm - test$Rvol)^2)/nrow(test)
 ```
 Note that I have also included an MSE (mean squared error) estimation in the code. This will be the prefered performance measure for the simple models in the beginning of the estimation procedure. 
 
-Now we do the same for the neural network. However, I also include a scaling function as stated in the 'Neural Network' model introduction above:
+Now we do the same for the neural network. However, I also include a scaling function as stated in the 'Neural Network' model introduction above, to ensure fair computations:
 ```
 maxs <- apply(LagData, 2, max)
 mins <- apply(LagData, 2, min)
@@ -97,7 +97,7 @@ print(paste(MSE.lm,MSE.nn))
 ```
 ![MSE scores](https://user-images.githubusercontent.com/69420936/92721467-6ed6b500-f366-11ea-8489-c29c4348c3e6.png)
 
-We see how the neural network has a slightly smaller MSE than the HAR model. Hoever, solely basing the performance of one performance criteria and estimation is not thorough enough for us to conclude which model is better. Therefore we should first take a look a the data again, and see whether there is anything noticeable in the estimation:
+We see how the neural network has a slightly smaller MSE than the HAR model. Hoever, solely basing the performance of one performance criteria and estimation is not thorough enough for us to conclude which model is better in the setting. Therefore we should first take a look at the data again, and see whether there is anything noticeable in the estimation:
 ![HFE2](https://user-images.githubusercontent.com/69420936/92722496-fcff6b00-f367-11ea-8a95-31752358ca3e.jpeg)
 
 We can see that the HAR estimation has slightly more outliers in regards to the testing data. However, in order to make sure this is not a one-time occurance, I use 10-fold cross-validation, I will then draw inference on the range of MSE's this will provide me with.
@@ -133,7 +133,7 @@ for(i in 1:k){
 From the boxplots above, it is evident that the neural network is doing very well compared to the HAR-model, despite the HAR model being designed for this environment. However, the HAR-model was also designed for forecasting, and I will therefore also test the forecasting properties of the two models:
 
 ### Forecasting:
-Now when we have determined the model performance within sample. We want to estimate the forecasting properties of the two models. We plot below shows the cross-validated models forecasting a week of open market days, corresponding to 5 days in the data (h=5).
+Now when we have determined the model performance within the sample. We want to estimate the forecasting properties of the two models. The plot below shows the cross-validated models forecasted a week of open market days, corresponding to 5 days in the data (h=5).
 ```
 windows()
 par(mfrow=c(2, 1))
@@ -159,7 +159,7 @@ sumHAR <- summary(HARFor)
 ![HFE4](https://user-images.githubusercontent.com/69420936/92923232-67cba780-f437-11ea-83d6-a9e3f42a0a87.jpeg)
 
 From the forecasts we can can measure the performance using RMSE instead of MSE, as well as AIC and BIC, sigma, MAE and ACF1. 
-From these performance measures, we can see that the neural network is the better forecasting model. This is in line with the MSE visible from the boxplots, as well as the MSE from the simpel model. To conclude on the forecasting performance, inspired by Hillebrand and Medeiros (2009), I will use bagging as an ensemble method to optimize my forecast. My goal is to minimize the the errors of the forecast by combining 100 bootstrapped forecasts for each model:
+From these performance measures, we can see that the neural network is the better forecasting model. This is in line with the MSE visible from the boxplots, as well as the MSE from the simple model. To conclude on the forecasting performance, inspired by Hillebrand and Medeiros (2009), I will use bagging as an ensemble method to optimize my forecast. My goal is to minimize the the errors of the forecast by combining 100 bootstrapped forecasts for each model:
 ```
 windows()
 par(mfrow=c(2, 1))
@@ -184,9 +184,9 @@ accuracy(HARBag)
 
 ### Conclusion:
 
-It is clear clear from the shaded blue area, that the error of the forecast has been reduced significantly. This is also apparent in the performance measures. 
+It is clear from the shaded blue area, that the error of the forecast has been reduced significantly. This is also apparent in the performance measures. 
 
-I can thereby conclude that in the specified high frequency environment, using data two years worth of data from 20 stocks in the S&P500, scrutinized by the approach of Barndorff-Nielsen, Hansen, Lunde & Shephard (2009: The neural network is a better performing model in estimation and forecasting the future volatility, despite HAR being designed for that very purpose of forecasting integrated variance (See Corsi 2009).
+I can thereby conclude that in the specified high frequency environment, using data of two years worth from 20 stocks in the S&P500, scrutinized by the approach of Barndorff-Nielsen, Hansen, Lunde & Shephard (2009): The neural network is a better performing model in the estimation and forecasting of future volatility, despite HAR being designed for that very purpose (forecasting integrated variance (See Corsi 2009)).
 
 ### Addtional computations:
 To draw further inspiration from Hillebrand and Medeiros (2009), I will also be using the bayesian ensemble method. 
@@ -203,7 +203,7 @@ summary(cv.modelHAR)
 plot(cv.modelHAR)
 plot(cv.modelNN)
 ```
-Bayesian ensemble can be executed in R either by programming the function from scratch, or by the use of the package "SuperLearner". To keep this walkthrough short and the code manageable, I will use the latter: Note that you need to use "St.bayesglm" as the SL.library'-parameter. This refer to the bayesglm-function which is a bayesian generalized linear model.
+Bayesian ensemble can be executed in R either by programming the function from scratch, or by the use of the package "SuperLearner". To keep this walkthrough short and the code manageable, I will use the latter: Note that you need to use "St.bayesglm" as the SL.library'-parameter. This refers to the bayesglm-function which is a bayesian generalized linear model.
 
 ### Thoughts for further analysis:
 Now when the better model in this setting has been established, it would be interesting to look at the performance of different HAR-types. It would also be interesting to see how other regression-based machine learning methods would perform in this setting (Lasso, Ridge).
