@@ -2,7 +2,7 @@
 # HAR vs. Neural-Networks
 ###### (Disclaimer: High Frequency Econometrics, High Frequency data manipulation, HAR, Neural Networks, Bagging, Cross-validation, Bayesian Ensemble)
 
-Inspired by Hillebrand &amp; Medeiros (2009) and Corsi (2009), I put neural networks in a High frequency environment, and tested the performance of the two models (HAR &amp; Neural Networks). - The data used in this project is 2 years worth of intraday 5-minute realized volatility (See: Sheppard, Patton, Liu, 2012) from 20 Dow Jones stocks, that has been scrutinized using bivariate analysis and manipulation into a single dimension. 
+Inspired by Hillebrand &amp; Medeiros (2009) and Corsi (2009), I put neural networks in a High frequency environment, and tested the performance of the two models (HAR &amp; Neural Networks). - The data used in this project is 2 years worth of intraday 5-minute realized volatility (See: Sheppard, Patton, Liu, 2012) from S&P500 stocks, that has been scrutinized using bivariate analysis and manipulation into a single dimension. 
 
 ### Introduction to the models:
 ##### HAR (Heterogenous Autoregressive model):
