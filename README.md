@@ -1,6 +1,6 @@
 # High Frequency Econometrics:
 # HAR vs. Neural-Networks
-###### (This walkthrough contain the following subjects: High Frequency Econometrics, High Frequency data manipulation, HAR, Neural Networks, Bagging, Cross-validation, Bayesian Ensemble)
+###### (Disclaimer: High Frequency Econometrics, High Frequency data manipulation, HAR, Neural Networks, Bagging, Cross-validation, Bayesian Ensemble)
 
 Inspired by Hillebrand &amp; Medeiros (2012) and Corsi (2009), I put neural networks in a High frequency environment, and tested the performance of the two models (HAR &amp; Neural Networks). - The data used in this project is 2 years worth of intraday 5-minute realized volatility (See: Sheppard, Patton, Liu, 2012) from 20 Dow Jones stocks, that has been scrutinized using bivariate analysis and manipulation into a single dimension. 
 
@@ -99,6 +99,7 @@ print(paste(MSE.lm,MSE.nn))
 
 We see how the neural network has a slightly smaller MSE than the HAR model. Hoever, solely basing the performance of one performance criteria and estimation is not thorough enough for us to conclude which model is better. Therefore we should first take a look a the data again, and see whether there is anything noticeable in the estimation:
 ![HFE2](https://user-images.githubusercontent.com/69420936/92722496-fcff6b00-f367-11ea-8a95-31752358ca3e.jpeg)
+
 We can see that the HAR estimation has slightly more outliers in regards to the testing data. However, in order to make sure this is not a one-time occurance, I use 10-fold cross-validation, I will then draw inference on the range of MSE's this will provide me with.
 ```
 # Cross-validation 
@@ -128,8 +129,108 @@ for(i in 1:k){
 }
 ```
 ![HFE3](https://user-images.githubusercontent.com/69420936/92723119-e279c180-f368-11ea-81ce-7178f33d9f5b.jpeg)
+
 From the boxplots above, it is evident that the neural network is doing very well compared to the HAR-model, despite the HAR model being designed for this environment. However, the HAR-model was also designed for forecasting, and I will therefore also test the forecasting properties of the two models:
 
 ### Forecasting:
-(Work in progress)
+Now when we have determined the model performance within sample. We want to estimate the forecasting properties of the two models. We plot below shows the cross-validated models forecasting a week of open market days, corresponding to 5 days in the data (h=5).
+```
+windows()
+par(mfrow=c(2, 1))
 
+#Neural Network
+pr.nn_ <- predict(nn, test.cv)
+pr.nn_ <- as.numeric(pr.nn_)
+NNFor <- forecast(pr.nn_,  h=5)
+plot(NNFor, col="blue", main="Forecast Neural Network", xlab="Days", ylab="Volatility")
+lines(fitted(NNFor), type="l", col="black")
+accuracy(NNFor)
+sumNN <- summary(NNFor)
+
+#HAR
+pr.lm_ <-  predict(lm.fit, test.cv)
+pr.lm_ <- as.numeric(pr.lm_)
+HARFor <- forecast(pr.lm_, h=5)
+plot(HARFor, col="red", main="Forecast HAR", xlab="Days", ylab="Volatility")
+lines(fitted(HARFor), type="l", col="black")
+accuracy(HARFor)
+sumHAR <- summary(HARFor)
+``` 
+![HFE4](https://user-images.githubusercontent.com/69420936/92923232-67cba780-f437-11ea-83d6-a9e3f42a0a87.jpeg)
+
+From the forecasts we can can measure the performance using RMSE instead of MSE, as well as AIC and BIC, sigma, MAE and ACF1. 
+From these performance measures, we can see that the neural network is the better forecasting model. This is in line with the MSE visible from the boxplots, as well as the MSE from the simpel model. To conclude on the forecasting performance, inspired by Hillebrand and Medeiros (2012), I will use bagging as an ensemble method to optimize my forecast. My goal is to minimize the the errors of the forecast by combining 100 bootstrapped forecasts for each model:
+```
+windows()
+par(mfrow=c(2, 1))
+
+#Neural Network Bagging
+y = as.numeric(pr.nn_)
+pr.NNBag = baggedModel(y, bld.mbb.bootstrap(y, 100), fn=ets)
+NNBag = forecast(pr.NNBag, h = 5)
+plot(NNBag, type="l", col="blue", main="Forecast from Bagged Neural Network")
+lines(fitted(NNBag))
+#HAR Bagging
+x = as.numeric(pr.lm_)
+pr.HARBag = baggedModel(x, bld.mbb.bootstrap(x, 100), fn=ets)
+HARBag = forecast(pr.HARBag, h = 5)
+plot(HARBag, type="l", col="red", main="Forecast from Bagged HAR")
+lines(fitted(HARBag))
+
+accuracy(NNBag)
+accuracy(HARBag)
+```
+![HFE5](https://user-images.githubusercontent.com/69420936/92930113-eb8a9180-f441-11ea-9e0f-fed40cdb2ddc.jpeg)
+
+### Conclusion:
+
+It is clear clear from the shaded blue area, that the error of the forecast has been reduced significantly. This is also apparent in the performance measures. 
+
+I can thereby conclude that in the specified high frequency environment, using data two years worth of data from 20 stocks in the S&P500, scrutinized by the approach of Barndorff-Nielsen, Hansen, Lunde & Shephard (2009: The neural network is a better performing model in estimation and forecasting the future volatility, despite HAR being designed for that very purpose of forecasting integrated variance (See Corsi 2009).
+
+### Addtional computations:
+To draw further inspiration from Hillebrand and Medeiros (2012), I will also be using the bayesian ensemble method. 
+```
+######################
+#Bayesian Ensemble
+#####################
+library(SuperLearner)
+library(arm)
+cv.modelNN <- CV.SuperLearner(y, test, V=5, SL.library=list("SL.bayesglm")) #Add any other model 
+cv.modelHAR <- CV.SuperLearner(x, test, V=5, SL.library=list("SL.bayesglm")) #Add any other model
+summary(cv.modelNN)
+summary(cv.modelHAR)
+plot(cv.modelHAR)
+plot(cv.modelNN)
+```
+Bayesian ensemble can be executed in R either by programming the function from scratch, or by the use of the package "SuperLearner". To keep this walkthrough short and the code manageable, I will use the latter: Note that you need to use "St.bayesglm" as the SL.library'-parameter. This refer to the bayesglm-function which is a bayesian generalized linear model.
+
+### Thoughts for further analysis:
+Now when the better model in this setting has been established, it would be interesting to look at the performance of different HAR-types. It would also be interesting to see how other regression-based machine learning methods would perform in this setting (Lasso, Ridge).
+It would also be of interest to see the performance if the realized volatility of each stock hadn't been scrutinized into one dimension, but instead made this analysis in a loop over the 20 stocks, and gathered the result in a table. - That would be a fun exercise for another repository.
+
+### Sources:
+###### Note that these sources where used in the paper I wrote, and not only for this simple walkthrough
+- Andersen, G, T; et al. (2001a). The Distribution of Realized stock return volatility. Journal of Financial Econometrics. Volume 61 – pp. 43-76
+- Andersen, G, T; et al. (2003). Modeling and Forecasting Realized Volatility. Journal of the Econometric Society. Volume 71, Issue 2 – pp. 579-625
+- Andersen, T; Bollerslev, T. (1997). Intraday periodicity and volatility persistence in financial markets. Journal of Empirical Finance. Volume 4, Issue 2-3 – pp. 115-158.
+- Barndorff-Nielsen, O, E; Hansen, P; Lunde, A; Shephard, N. (2009). Realized kernels in practice: Trades and quotes. Volume 12, Issue 3, - pp. 397-450.
+- Barndorff-Nielsen, O, E; Shephard, N. (2002). Econometrics Analysis of Realized Volatility and Its use in Estimating Stochastic Volatility Models. Journal of Royal Statistical Society. Volume 65, Issue 2. – pp. 253-280.
+- Corsi, F. (2009). A Simple Approximation Long-Memory Model of Realized Volatility. Journal of Financial Econometrics. Volume 7. Issue 2. – pp. 174-196
+- Donaldson, R.G. and Kamstra, M. (1997) An Artificial Neural Network—GARCH Model for International Stock Return Volatility. Journal of Empirical Finance, 4, 17-46.
+- Hillebrand, E; Medeiros, M, C. (2010). Benefits of Bagging for Forecast Models of Realized Volatility. Econometric Review, 29: 5, - pp. 571-593
+- Bunda, I; Desquilbet, J, B. (2008) The Bank Liquidity Smile Across Exchange Rate Regimes. International Economic Journal. Volume 22, Issue 3. – pp. 361-386
+- Hu, M, Y; Tsoukalas, C (1999) Combining conditional volatility forecasts using neural networks: An application to the EMS exchange rates. Journal of International Financial Markets Institution and Money. 9(4), pp. 407-422
+- Hamid, S, A; Iqbal, Z. (2004). Using Neural Networks for forecasting Volatility of S&P 500 Index futures prices. Journal of Business Research. Volume. 57, Issue 10. – pp. 1116-1125.
+- Kolmogorov, A. (1931) On Analytical Methods in the Theory of Probability. Mathematics and Its Applications (Soviet Series), Volume 26. – pp 62-108.
+- Müller, U, A; et al. (1993). Volatilities of different time resolutions; Analyzing the dynamics of market components. Journal of Empirical Finance. Volume 4, Issue 2-3, - pp. 213-239
+- Müller, U, A; Dacorogna, M; Nagler, R; et al. (1997). A geographical model for the daily and weekly seasonal volatility in the foreign exchange market. Journal of International Money and Finance. Volume 12, Issue 4. – pp. 413-438
+- Lux, T; Marchesi, M. (1999). Scaling and critically in a stochastic multi-agent model of a financial market. Nature 397, - pp. 498-500
+- Lux, T; Alferano, S. (2007), Empirical validation of stochastic models of interacting agtens. The European Physical Journal B; Condensed Matter and Complex Systems, Volume 55, Issue 2. – pp. 183-187.
+- Lebaron, B. (2006). Agent-based Computational Finance. Handbook of Computational Economics, Volume – pp. 1187-1233
+- Inoue, A; Kilian, L. (2007). In-Sample or Out-of-Sample Tests of Predictability: Which One Should We Use?. Econometric Review, Volume 23, Issue 4 – pp. 371-402
+- Rapach, D, E.; Strauss, J, K. (2007). Forecasting Real Housing Price Growth in the Eighth District States. Federal Reserve Bank of St. Louis Regional Economic Development. Volume 3, Issue 2. – pp.33-42
+- Rossi, A; Gallo, G. (2006). Volatility estimation via hidden Markov models. Journal of Empirical Finance. Volume 13, Issue 2. – pp. 203-230
+- James, G; Witten, D; Hastie, T, J; Tibshirani, R. (2013) Introduction to Statistical Learning: With Applications in R. Boston, MA: Springer
+- Hastie, T.; Tibshirani, R.; Friedman, J. (2009). The Elements of Statistical Learning. 2nd Edition. Boston, MA: Springer
+- Øksendal, B. (2003). Stochastic Differential Equations: An Introduction with Applications. 6th Edition. Berlin, DE: Springer
