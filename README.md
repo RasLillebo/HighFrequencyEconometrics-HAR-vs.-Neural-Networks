@@ -2,7 +2,7 @@
 # HAR vs. Neural-Networks
 ###### (Disclaimer: High Frequency Econometrics, High Frequency data manipulation, HAR, Neural Networks, Bagging, Cross-validation, Bayesian Ensemble)
 
-Inspired by Hillebrand &amp; Medeiros (2012) and Corsi (2009), I put neural networks in a High frequency environment, and tested the performance of the two models (HAR &amp; Neural Networks). - The data used in this project is 2 years worth of intraday 5-minute realized volatility (See: Sheppard, Patton, Liu, 2012) from 20 Dow Jones stocks, that has been scrutinized using bivariate analysis and manipulation into a single dimension. 
+Inspired by Hillebrand &amp; Medeiros (2009) and Corsi (2009), I put neural networks in a High frequency environment, and tested the performance of the two models (HAR &amp; Neural Networks). - The data used in this project is 2 years worth of intraday 5-minute realized volatility (See: Sheppard, Patton, Liu, 2012) from 20 Dow Jones stocks, that has been scrutinized using bivariate analysis and manipulation into a single dimension. 
 
 ### Introduction to the models:
 ##### HAR (Heterogenous Autoregressive model):
@@ -159,7 +159,7 @@ sumHAR <- summary(HARFor)
 ![HFE4](https://user-images.githubusercontent.com/69420936/92923232-67cba780-f437-11ea-83d6-a9e3f42a0a87.jpeg)
 
 From the forecasts we can can measure the performance using RMSE instead of MSE, as well as AIC and BIC, sigma, MAE and ACF1. 
-From these performance measures, we can see that the neural network is the better forecasting model. This is in line with the MSE visible from the boxplots, as well as the MSE from the simpel model. To conclude on the forecasting performance, inspired by Hillebrand and Medeiros (2012), I will use bagging as an ensemble method to optimize my forecast. My goal is to minimize the the errors of the forecast by combining 100 bootstrapped forecasts for each model:
+From these performance measures, we can see that the neural network is the better forecasting model. This is in line with the MSE visible from the boxplots, as well as the MSE from the simpel model. To conclude on the forecasting performance, inspired by Hillebrand and Medeiros (2009), I will use bagging as an ensemble method to optimize my forecast. My goal is to minimize the the errors of the forecast by combining 100 bootstrapped forecasts for each model:
 ```
 windows()
 par(mfrow=c(2, 1))
@@ -189,7 +189,7 @@ It is clear clear from the shaded blue area, that the error of the forecast has 
 I can thereby conclude that in the specified high frequency environment, using data two years worth of data from 20 stocks in the S&P500, scrutinized by the approach of Barndorff-Nielsen, Hansen, Lunde & Shephard (2009: The neural network is a better performing model in estimation and forecasting the future volatility, despite HAR being designed for that very purpose of forecasting integrated variance (See Corsi 2009).
 
 ### Addtional computations:
-To draw further inspiration from Hillebrand and Medeiros (2012), I will also be using the bayesian ensemble method. 
+To draw further inspiration from Hillebrand and Medeiros (2009), I will also be using the bayesian ensemble method. 
 ```
 ######################
 #Bayesian Ensemble
@@ -218,7 +218,7 @@ It would also be of interest to see the performance if the realized volatility o
 - Barndorff-Nielsen, O, E; Shephard, N. (2002). Econometrics Analysis of Realized Volatility and Its use in Estimating Stochastic Volatility Models. Journal of Royal Statistical Society. Volume 65, Issue 2. – pp. 253-280.
 - Corsi, F. (2009). A Simple Approximation Long-Memory Model of Realized Volatility. Journal of Financial Econometrics. Volume 7. Issue 2. – pp. 174-196
 - Donaldson, R.G. and Kamstra, M. (1997) An Artificial Neural Network—GARCH Model for International Stock Return Volatility. Journal of Empirical Finance, 4, 17-46.
-- Hillebrand, E; Medeiros, M, C. (2010). Benefits of Bagging for Forecast Models of Realized Volatility. Econometric Review, 29: 5, - pp. 571-593
+- Hillebrand, E; Medeiros, M, C. (2009). Benefits of Bagging for Forecast Models of Realized Volatility. Econometric Review, 29: 5, - pp. 571-593
 - Bunda, I; Desquilbet, J, B. (2008) The Bank Liquidity Smile Across Exchange Rate Regimes. International Economic Journal. Volume 22, Issue 3. – pp. 361-386
 - Hu, M, Y; Tsoukalas, C (1999) Combining conditional volatility forecasts using neural networks: An application to the EMS exchange rates. Journal of International Financial Markets Institution and Money. 9(4), pp. 407-422
 - Hamid, S, A; Iqbal, Z. (2004). Using Neural Networks for forecasting Volatility of S&P 500 Index futures prices. Journal of Business Research. Volume. 57, Issue 10. – pp. 1116-1125.
